@@ -1,36 +1,43 @@
-# AI & Maritime Brief — GitHub Pages 실습
+# AI & Maritime Brief — 무료 자동 게시·이메일 뉴스레터
 
-ChatGPT Plus의 예약 작업으로 매일 뉴스 요약을 받고, GitHub Pages에는 사용자가 직접 HTML을 올리는 **API 비용 0원** 방식입니다. (GitHub 무료 공개 저장소 사용)
+## 원리
+- 공개 Google 뉴스 RSS에서 지난 24시간 기사를 수집합니다.
+- AI API를 이용하지 않습니다. **기사 본문을 읽고 AI로 요약한 결과가 아니라 RSS의 제목과 제공된 소개문**입니다. 소개문이 없으면 명시합니다.
+- 매일 한국 시각 오전 8시 GitHub Actions가 HTML을 생성하고 GitHub Pages에 배포한 다음 Gmail로 동일한 HTML을 발송합니다.
+- 사이트: https://gmlans77-ops.github.io/ai-maritime-news/
+- **예약 실행은 GitHub 상황에 따라 지연/누락될 수 있습니다.** 뉴스 RSS의 품질이나 연결 상태에 따라 해당 날짜에 발행되지 않을 수 있습니다.
 
-## 첫 게시 (처음 한 번)
-1. https://github.com 에서 개인 계정으로 로그인합니다.
-2. 오른쪽 `+` → **New repository** → 이름 `ai-maritime-news` → **Public** → **Create repository**.
-3. 저장소 화면에서 **uploading an existing file** 또는 **Add file → Upload files**를 선택합니다.
-4. 이 ZIP의 `index.html`, `.nojekyll`, `archive/2026-11-03.html`을 **폴더 구조 그대로** 올립니다. GitHub 업로드 화면에서는 폴더 `archive`를 통째로 드래그하면 편합니다. `README.md`도 같이 올려도 됩니다. 폴더 업로드가 안 되면 새 파일 만들기에서 파일명을 `archive/2026-11-03.html`로 지정하고 내용을 붙여넣습니다.
-5. 아래 **Commit changes**를 누릅니다.
-6. **Settings → Pages → Build and deployment → Source: Deploy from a branch → Branch: main, /(root) → Save**.
-7. 몇 분 후 `https://내아이디.github.io/ai-maritime-news/`에서 확인합니다. GitHub Pages 게시 시간이 지연될 수 있습니다.
+## 설치 — 지금 사용 중인 저장소에 추가
+1. ZIP 압축을 풀고 안의 **내용물 전체**를 기존 `ai-maritime-news` 저장소에 업로드합니다. `archive/2026-11-03.html` 등 기존 파일은 유지하세요.
+2. GitHub 브라우저에서 숨김 폴더 `.github/workflows`를 폴더째 올리기 어렵다면 **Add file → Create new file**을 선택하고 파일명에 `.github/workflows/daily-newsletter.yml`을 입력한 뒤 ZIP 파일의 해당 YAML 내용을 붙여넣으세요.
+3. Settings → Actions → General → Workflow permissions → **Read and write permissions**를 선택할 수 있다면 설정하세요. 워크플로에도 `contents: write` 등이 포함되어 있습니다.
+4. **매우 중요!** Settings → Pages → Build and deployment → Source를 기존 **Deploy from a branch**에서 **GitHub Actions**로 변경하세요. `GITHUB_TOKEN`이 만든 커밋은 branch-source Pages 빌드를 트리거하지 않으므로 이 변경이 필요합니다.
+5. `Settings → Secrets and variables → Actions → New repository secret`에서 아래 세 가지를 각각 등록합니다. 앱 비밀번호를 **코드, README, 채팅에 절대 붙여넣지 마세요.**
+   - `GMAIL_ADDRESS`: 발신할 **개인 Gmail 주소**
+   - `GMAIL_APP_PASSWORD`: Google 계정의 **2단계 인증 → 앱 비밀번호**에서 생성한 16자리 비밀번호 (띄어쓰기 없이 입력)
+   - `NEWSLETTER_TO`: 수신할 이메일 주소 (본인 개인 이메일 권장)
+6. GitHub 저장소의 `Actions` → `Daily newsletter + website + email` → `Run workflow` → `Run workflow`를 눌러 한 번 시험 실행하세요. 수동 시험은 날짜 뒤에 `-test`가 붙은 별도의 뉴스레터를 만들므로 기존 1호를 덮어쓰지 않습니다.
+7. 로그에서 `Generate HTML` → `Deploy GitHub Pages` → `Email HTML newsletter after deployment`가 성공인지 확인하고 개인 메일함(스팸함 포함)을 확인하세요.
 
-## 매일 업데이트 (수동, API 비용 없음)
-1. 매일 오전 8시 ChatGPT 예약 작업의 뉴스를 확인합니다. 요약은 자동 수신되지만 HTML 파일이 자동 생성·게시되는 것은 보장되지 않습니다.
-2. ChatGPT에 다음처럼 요청합니다:
-   > 오늘 받은 AI·조선해운 뉴스레터를 검토해 공개 기사와 원문 URL을 확인한 뒤, GitHub Pages용 `archive/YYYY-MM-DD.html` 파일을 만들어 줘. 그리고 최신 발행물 링크가 맨 위에 오도록 `index.html`도 업데이트해 줘. 두 파일을 내려받을 수 있게 해 줘.
-3. 받은 `YYYY-MM-DD.html`을 저장소의 `archive/` 폴더에 업로드하고, **기존 `index.html`을 새 버전으로 교체**합니다. (기존 `index.html` 파일 화면의 연필 아이콘으로 편집하거나 업로드로 대체)
-4. **Commit changes**를 누르고 페이지에서 새로운 날짜가 보이는지 확인합니다.
-5. 새로운 기사 내용을 확인한 뒤에 공개하세요. ChatGPT의 뉴스 요약에는 오류가 있을 수 있습니다.
+## Gmail 앱 비밀번호
+- https://myaccount.google.com/apppasswords 에서 생성할 수 있습니다(일부 계정에서는 사용 불가).
+- 2단계 인증이 필요하며 개인용 Google 계정에만 사용하는 것을 권장합니다.
+- 앱 비밀번호는 메일 전송 프로그램에 Gmail 계정 접근을 부여하므로 최소 권한 OAuth 방식보다 위험할 수 있습니다. 전용 개인 계정을 이용하고, 사용 중단 시 Google 계정에서 앱 비밀번호를 폐기하세요.
 
-## 파일 구조
-```
-ai-maritime-news/
-├── index.html                 # 웹사이트 첫 화면 / 뉴스레터 목록
-├── .nojekyll                  # 정적 파일 그대로 게시
-├── README.md                  # 이 안내서
-└── archive/
-    └── 2026-11-03.html        # 첫 번째 뉴스레터
-```
+## GitHub Pages 참고
+- GitHub Pages의 Source가 **GitHub Actions**인지 반드시 확인하세요. 이전 설정 `main/(root)` 상태를 그대로 두면 자동 게시 결과가 반영되지 않을 수 있습니다.
+- 이 ZIP의 파일을 업로드하면 기존 1호 뉴스레터는 그대로 유지됩니다.
+- 메일 발송은 **성공적으로 새 페이지가 배포된 후에만** 진행합니다. 새 기사가 없거나 같은 날 재실행하면 중복 메일을 보내지 않습니다.
+- Google News RSS 원문 링크는 원 언론사 대신 Google 뉴스 중계 주소일 수 있습니다. 뉴스 발행일은 RSS 기준이며 진위·원문은 추가 확인하세요.
 
 ## 보안
-GitHub Pages는 인터넷에 공개됩니다. 회사 도면, 고객 정보, 이메일, 회의록, 개인 식별 정보 등 비공개 자료는 절대로 업로드하지 마세요. 회사 PC 사용 가능 여부는 사내 정책을 먼저 확인하세요.
+- GitHub 저장소는 공개 상태입니다. 회사 기밀, 고객 정보, 사내 자료, 로그인 암호를 올리지 마세요.
+- GitHub Secrets에만 암호를 저장하고, 커밋에 포함되지 않는지 확인하세요.
+- 소스 피드의 내용은 신뢰할 수 없는 외부 텍스트이므로 HTML 이스케이프 후 표시합니다.
 
-## 비용 / 한계
-GitHub Pages는 GitHub Free의 공개 저장소로 무료 사용 가능하며, 이번 구성은 OpenAI API를 사용하지 않습니다. ChatGPT Plus 구독과 사용량 한도는 적용됩니다. **자동 수집·알림은 ChatGPT**, **HTML 생성 요청과 게시 작업은 사용자**가 담당합니다.
+## 파일
+- `generate_news.py`: RSS 수집, HTML 생성, 이메일 발송 코드
+- `requirements.txt`: RSS 패키지
+- `.github/workflows/daily-newsletter.yml`: 매일 자동 실행/배포/메일
+- `index.html`: 기존 첫 페이지 디자인, 이후 자동 최신화
+- `archive/`: 날짜별 보관
