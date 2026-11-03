@@ -1,0 +1,69 @@
+name: Daily newsletter + website + email
+
+on:
+  schedule:
+    - cron: '0 8 * * *'
+      timezone: 'Asia/Seoul'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: newsletter-pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+      - name: Generate HTML from public RSS
+        run: python generate_news.py
+        env:
+          TEST_MODE: ${{ github.event_name == 'workflow_dispatch' && '1' || '0' }}
+          SITE_URL: https://gmlans77-ops.github.io/ai-maritime-news/
+      - name: Save today's newsletter to repository
+        id: changes
+        shell: bash
+        run: |
+          if [[ -n "$(git status --porcelain -- index.html archive/)" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add index.html archive/
+            git commit -m "Daily RSS newsletter"
+            git push
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Configure GitHub Pages
+        if: steps.changes.outputs.changed == 'true'
+        uses: actions/configure-pages@v5
+      - name: Upload website artifact
+        if: steps.changes.outputs.changed == 'true'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: '.'
+      - name: Deploy GitHub Pages
+        id: deployment
+        if: steps.changes.outputs.changed == 'true'
+        uses: actions/deploy-pages@v4
+      - name: Email HTML newsletter after deployment
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          NEWSLETTER_TO: ${{ secrets.NEWSLETTER_TO }}
+          SITE_URL: https://gmlans77-ops.github.io/ai-maritime-news/
+          TEST_MODE: ${{ github.event_name == 'workflow_dispatch' && '1' || '0' }}
+        run: python generate_news.py send
